@@ -1,0 +1,369 @@
+(function(window, undefined) {
+		var VaultHealper = window.VaultSDK;
+		console.log('Lib loaded');
+		
+		/**
+		Listen triggered event and make API call
+		*/
+		VaultHealper.listen = function () {
+			
+			if (arguments.length == 1) {
+				callAPI(arguments[0]);
+			}else{
+				callAPI(arguments[0], arguments[1]);
+			}
+			// callAPI(goalId);
+			
+		}
+		
+		/**
+		Save all browser info to send in event call
+		*/
+		VaultHealper.saveBrowserInfo = function(trackMacro){
+			// VaultHealper.ApiKey = apiKey;
+			setBrowserInfo(trackMacro);
+			
+		}
+		
+		VaultHealper.savePageInfo = function(pageUrl){
+			// setSessionBrowserInfo("PageUrl", pageUrl);
+			VaultHealper.cookie.write('page_url', pageUrl, 1, window.location.hostname, null);
+			
+		}
+		
+		
+		VaultHealper.getSubleadId = function(){
+			return VaultHealper.cookie.read("sub_lead_id");
+		}
+		
+		
+		
+		/**
+		call API to fetch local data and send to server
+		*/
+		function callAPI(){
+			
+			
+			var transactionId = VaultHealper.cookie.read("transaction_id");
+			if (transactionId.indexOf('&goal_id') !== -1) {
+				transactionId = transactionId.split('&goal_id')[0];
+			};
+			
+			// requestJson ["transaction_id"] = transactionId;
+			var goalId = 0, additionalMacros = '';
+			if (arguments.length == 1) {
+				goalId = arguments[0];
+			} else {
+				
+				goalId = arguments[0];
+				
+				// var allMacros = arguments[1];
+				// for (var key in allMacros) {
+				//   var value = allMacros[key];
+				//   console.log(key, value);
+				// 	additionalMacros += "&"+key+"="+value
+				// }
+				
+				function logMapElements(value, key, map) {
+				  console.log(key +'='+ value);
+
+					additionalMacros += "&"+key+"="+value;
+				}
+
+				arguments[1].forEach(logMapElements);
+				
+				
+				// arguments[1].forEach((item, key) => {
+				// 	// do something with an item
+				// 	console.log(key, item);
+				//
+				// 	additionalMacros += "&"+key+"="+item
+				//
+				// });
+			}
+			
+			
+			
+			if (goalId == 0) {
+				goalId = VaultHealper.cookie.read("goal_id");
+			}
+			
+			console.log("Additional macros : "+ additionalMacros+" , "+goalId);
+			// https://devt.adzorb.co/cu?&transaction_id={aff_sub}
+			var postBack = CONFIG.get('BASE_URL')+ CONFIG.get('TRANSACTION_MACRO')+transactionId;
+			
+			console.log("Additional macros : "+ additionalMacros+" , "+goalId+" , "+ transactionId);
+			//https://devt.adzorb.co/cu?&transaction_id={aff_sub}&goal_id=xxx
+			if (goalId) {
+				postBack = postBack+CONFIG.get('GOAL_MACRO')+goalId;
+				console.log("In goal ............ "+postBack);
+			}
+			
+			if (additionalMacros) {
+				postBack = postBack+additionalMacros;
+			}
+			
+			var xhr = createCORSRequest('GET', postBack);//new XMLHttpRequest();
+			console.log("Before API call ............ "+postBack);
+			// xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			// xhr.setRequestHeader('t1k', CONFIG.get('API_TAC'));
+			// xhr.setRequestHeader('tAc', VaultHealper.cookie.read('API_KEY'));
+			// xhr.setRequestHeader('tAc', 'MTAwMSQkVU5MSUNIRVdFQkFQSSQkMTVmY2JkMDFlMDg1NDVjMjBiY2U0ZWNhOTBmZDI5MmYtNWE3YmU3ODQzYmVmZg==');
+			
+			xhr.onload = function() {
+				if (xhr.status === 200 ) {
+					console.log("API response : "+xhr.responseText);
+				}
+				else if (xhr.status !== 200) {
+					console.log("API response error : "+xhr.responseText);
+				}
+			};
+			
+			
+			// requestJsonWithMethod ["evntrk"] = JSON.parse(finalJson.substring(0,finalJson.length-1));
+			// var requestPost = {"evntrk":{"event_id":100000004,"phone_number":"+919766625984","username":"Daya","ip":"192.168.0.16","os_type":2,"os_version":"6.0.1","timestamp":"2018-01-22 11:45:42","device_name":"samsung","device_model_no":"SM-G900F","language":"English","timezone":"India Standard Time","locale_identifier":"","carrier_name":"","carrier_code":"405","carrier_network_code":"801","iso_country_code":"","supports_voip":0,"app_name":"UnlicheSDK","network_type":1,"app_version":"1.0","app_bundle_id":"com.rappier.unlichesdk.unlichesdk","device_id":"84:38:38:18:5B:D6","android_transaction_id":"","android_imei_no":"353204060563021","android_uuid":"353204060563021","android_gaid":"2dac8c51-2527-40e3-b21e-7a91dd8f03bd","user_id":"12345","sdk_version":"1","advertiser_sub1":"","advertiser_sub2":"","advertiser_sub3":"","advertiser_sub4":"","advertiser_sub5":"","purchase_amount":0,"purchase_currency":"","payment_gateway":"","android_rooted_device":0}};
+			
+			// console.log("Sdk mode is : "+setMode);
+			// var testMode = "test";
+			
+			if(transactionId) {
+				// console.log("JSON : "+JSON.stringify(requestJsonWithMethod));
+				xhr.send();
+			}
+			// else if (setMode.indexOf(testMode) !== -1){
+			// 	console.log("In condition : "+setMode);
+			// 	xhr.send(CONFIG.get('Method_Name')+'='+finalJson.substring(0,finalJson.length-1));
+			// }
+			
+			
+		}
+		
+		function createCORSRequest(method, url) {
+			var xhr = new XMLHttpRequest();
+			if ("withCredentials" in xhr) {
+				
+				xhr.open(method, url, true);
+				
+			} else if (typeof XDomainRequest != "undefined") {
+				
+				xhr = new XDomainRequest();
+				xhr.open(method, url);
+				
+			} else {
+				
+				xhr = null;
+				
+			}
+			return xhr;
+		}
+		
+		
+		/**
+		Retrive all browser info and save in session
+		*/
+		function setBrowserInfo(trackMacro){
+			
+			
+			//VaultHealper.cookie.write('transactionid_param', trackMacro, 1, window.location.hostname, null);
+			// Give the URL parameters variable names
+			console.log("Before session");
+			var sesSionId = getParameterByName('sess_id');
+			console.log("After session");
+			var source = getParameterByName('utm_source');
+			// var medium = getParameterByName('utm_medium');
+			// var campaign = getParameterByName('utm_campaign');
+			// var terms = getParameterByName('utm_term');
+			// var content = getParameterByName('utm_content');
+			
+			//var transactionMacro = VaultHealper.cookie.read('transactionid_param');
+			console.log("transaction id param : "+trackMacro);
+			
+			var transaction = getParameterByName(trackMacro);
+			// var trck_id = getParameterByName('trck_id');
+			var subLeadId = getParameterByName('sub_lead_id');
+			var goalId = getParameterByName('goal_id');
+			
+			console.log("After url params");
+			
+			if (transaction) {
+				var date = new Date();
+				var sessionId = 'UNL_'+source+'_'+Math.floor(Math.random() * 1000)+date.getTime();
+				VaultHealper.cookie.write('session_id', sessionId, 1, window.location.hostname, null);
+				console.log('UTM '+source+', '+sessionId);
+				
+				VaultHealper.cookie.write('utm_source', source, 1, window.location.hostname, null);
+				// VaultHealper.cookie.write('utm_medium', medium, 1, window.location.hostname, null);
+				// VaultHealper.cookie.write('utm_campaign', campaign, 1, window.location.hostname, null);
+				// VaultHealper.cookie.write('utm_term', terms, 1, window.location.hostname, null);
+				// VaultHealper.cookie.write('utm_content', content, 1, window.location.hostname, null);
+				VaultHealper.cookie.write('transaction_id', transaction, 1, window.location.hostname, null);
+				VaultHealper.cookie.write('sub_lead_id', subLeadId, 1, window.location.hostname, null);
+				VaultHealper.cookie.write('goal_id', goalId, 1, window.location.hostname, null);
+				// UnlicheSDKLib.cookie.write('SDK_MODE', mode, 1, window.location.hostname, null);
+				// console.log('Mode of In cookie 1 ........... '+mode);
+				// VaultHealper.cookie.write('API_KEY', APIKey, 1, window.location.hostname, null);
+				// VaultHealper.cookie.write('trck_id', trck_id, 1, window.location.hostname, null);
+			}
+			
+			// if(sesSionId === "no"){
+			//
+			// 	var date = new Date();
+			// 	var sessionId = 'UNL_'+source+'_'+Math.floor(Math.random() * 1000)+date.getTime();
+			// 	UnlicheSDKLib.cookie.write('session_id', sessionId, 1, window.location.hostname, null);
+			// 	console.log('UTM '+source+', '+sessionId+', '+campaign);
+			//
+			// 	UnlicheSDKLib.cookie.write('utm_source', source, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_medium', medium, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_campaign', campaign, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_term', terms, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_content', content, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('transaction_id', transaction, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('sub_lead_id', subLeadId, 1, window.location.hostname, null);
+			// 	// UnlicheSDKLib.cookie.write('SDK_MODE', mode, 1, window.location.hostname, null);
+			// 	// console.log('Mode of In cookie 1 ........... '+mode);
+			// 	UnlicheSDKLib.cookie.write('API_KEY', APIKey, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('trck_id', trck_id, 1, window.location.hostname, null);
+			// }else if (sesSionId && sesSionId !== '' && sessionId !== null && sessionId !== "null") {
+			// 	UnlicheSDKLib.cookie.write('session_id', sesSionId, 1, window.location.hostname, null);
+			// 	console.log('UTM '+source+', '+sesSionId+', '+campaign);
+			//
+			// 	UnlicheSDKLib.cookie.write('utm_source', source, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_medium', medium, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_campaign', campaign, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_term', terms, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('utm_content', content, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('transaction_id', transaction, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('sub_lead_id', subLeadId, 1, window.location.hostname, null);
+			// 	// UnlicheSDKLib.cookie.write('SDK_MODE', mode, 1, window.location.hostname, null);
+			// 	// console.log('Mode of In cookie 2 ........... '+mode);
+			// 	UnlicheSDKLib.cookie.write('API_KEY', APIKey, 1, window.location.hostname, null);
+			// 	UnlicheSDKLib.cookie.write('trck_id', trck_id, 1, window.location.hostname, null);
+			// }
+			
+			// var browsersInfoData = JSON.stringify(browserInfoJson);
+			
+			setSessionBrowserInfo();
+			
+		}
+		
+		/**
+		Parse the URL and get values from url
+		*/
+		function getParameterByName(name) {
+			var url_string = document.URL; //window.location.href
+			var url = new URL(url_string);
+			if(url.searchParams){
+				var value = url.searchParams.get(name);
+			}else{
+				var value = "";
+			}
+			
+			console.log("Value is : "+value);
+			return value;
+		}
+		
+		/**
+		Write session
+		*/
+		function setSessionBrowserInfo(){
+			// sessionStorage.setItem(clietnID, infoJson);
+			
+			callAPI(0);
+		}
+		
+		/**
+		Read session
+		*/
+		function getSessionBrowserInfo(clietnID){
+			return sessionStorage.getItem(clietnID);
+		}
+		
+		/*
+		Check Session storage writable or not
+		*/
+		var checkCanSessionStorage = function() {
+			var mod = 'modernizr';
+			try {
+				sessionStorage.setItem(mod, mod);
+				sessionStorage.removeItem(mod);
+				return true;
+			} catch (e) {
+				return false;
+			}
+		}
+		
+		/*
+		Check Cookie writable or not
+		*/
+		var checkCookieWritable = function(domain) {
+			try {
+				// Create cookie
+				document.cookie = 'cookietest=1' + (domain ? '; domain=' + domain : '');
+				var ret = document.cookie.indexOf('cookietest=') != -1;
+				// Delete cookie
+				document.cookie = 'cookietest=1; expires=Thu, 19-Jan-2018 00:00:01 GMT' + (domain ? '; domain=' + domain : '');
+				return ret;
+			} catch (e) {
+				return false;
+			}
+		}
+		
+		/*
+		Cookie write, read and remove
+		*/
+		VaultHealper.cookie = {
+			write: function(name, value, days, domain, path) {
+				var date = new Date();
+				days = days;
+				path = path || '/';
+				date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+				var expires = '; expires=' + date.toGMTString();
+				var cookieValue = name + '=' + value + expires + '; path=' + path;
+				if (domain) {
+					cookieValue += '; domain=' + domain;
+				}
+				console.log('Cookie data : '+cookieValue);
+				document.cookie = cookieValue;
+			},
+			read: function(c_name) {
+				var allCookie = '' + document.cookie;
+				var index = allCookie.indexOf(c_name);
+				if (c_name === undefined || c_name === '' || index === -1) return '';
+				var ind1 = allCookie.indexOf(';', index);
+				if (ind1 == -1) ind1 = allCookie.length;
+				return unescape(allCookie.substring(index + c_name.length + 1, ind1));
+			},
+			remove: function(name) {
+				if (this.read(name)) {
+					this.write(name, '', -1, '/');
+				}
+			}
+		}
+		
+		var CONFIG = (function() {
+				var private = {
+					'BASE_URL':'https://devapp.adzorbdigital.com/cu?',
+					'TRANSACTION_MACRO':'&transaction_id=',
+					'GOAL_MACRO':'&goal_id='
+				};
+				
+				return {
+					get: function(name) { return private[name]; }
+				};
+		})();
+		
+		
+		
+		// example object
+		// var obj = {a: 1, b: 2, c: 'something'};
+		// caching map
+		// var objMap = new Map(Object.entries(obj));
+		
+		// fast iteration on Map object
+		// objMap.forEach((item, key) => {
+		//   // do something with an item
+		//   console.log(key, item);
+		// });
+		
+		
+})(this);
